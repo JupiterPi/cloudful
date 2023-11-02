@@ -1,6 +1,7 @@
 package de.jupiterpi.cloudful.cli
 
 import java.nio.file.Path
+import java.util.*
 import kotlin.io.path.*
 
 fun syncRepository(repository: Repository) {
@@ -16,18 +17,45 @@ fun syncRepository(repository: Repository) {
     }
 }
 
-fun syncAllRepositories() {
-    repositoryRegistry.readLines().filter { it.isNotBlank() }.forEach { repositoryRoot ->
-        println()
-        val repository = readRepository(Path(repositoryRoot))!!
-        println("Syncing repository ${repository.repositoryPath} at ${repository.root} ...")
+@OptIn(ExperimentalPathApi::class)
+fun syncAllRepositories(uploadOnly: Boolean) {
+    var repositories = repositoryRegistry.readLines().filter { it.isNotBlank() }.mapNotNull { readRepository(Path(it)) }
+    repositoryRegistry.writeLines(repositories.map { it.root.toString() })
+
+    if (uploadOnly) {
+        val lastSynced = Date(lastSyncedFile.readText().trim().toLong())
+        repositories = repositories
+            .filter {
+                for (path in it.root.walk()) {
+                    if (path.toFile().lastModified() > lastSynced.time) return@filter true
+                }
+                false
+            }
+    }
+
+    repositories.forEach { repository ->
+        println("\nSyncing repository ${repository.repositoryPath} at ${repository.root} ...")
         syncRepository(repository)
     }
+
+    lastSyncedFile.writeText(Date().time.toString())
 }
 
-fun createRepository(repositoryPath: String) {
-    if (readRepository() != null) throw DisplayException("There's already a repository here!")
-    Path(".cloudful").createFile().writeText("> $repositoryPath\n\n# Exclude files here...")
+fun createRepository(repositoryPath: String?) {
+    if (readRepository() != null) {
+        println("There's already a repository here!")
+    } else {
+        if (repositoryPath.isNullOrBlank()) throw Exception("Need to provide a repository path!")
+        Path(".cloudful").createFile().writeText("> $repositoryPath\n\n# Exclude files here...")
+        println("Created new repository. See .cloudful")
+    }
+
+    val repositories = repositoryRegistry.readLines().filter { it.isNotBlank() }
+    val root = Path("").absolute().toString()
+    if (!repositories.contains(root)) {
+        repositoryRegistry.writeLines(repositories + root)
+        println("Added it to the global registry.")
+    }
 }
 
 @OptIn(ExperimentalPathApi::class)

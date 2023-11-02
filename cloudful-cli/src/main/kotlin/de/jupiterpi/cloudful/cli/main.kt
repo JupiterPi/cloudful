@@ -1,22 +1,27 @@
 package de.jupiterpi.cloudful.cli
 
 import picocli.CommandLine
-import picocli.CommandLine.Command
-import picocli.CommandLine.Option
-import picocli.CommandLine.Parameters
+import picocli.CommandLine.*
 import java.awt.Desktop
 import java.net.URI
 import java.nio.file.Path
-import kotlin.io.path.Path
-import kotlin.io.path.div
-import kotlin.io.path.readLines
+import kotlin.io.path.*
 import kotlin.system.exitProcess
 
 lateinit var repositoryRegistry: Path
+lateinit var lastSyncedFile: Path
+
+fun initializeFiles(dataPath: String) {
+    val dataDirectory = Path(dataPath)
+    repositoryRegistry = dataDirectory / "repos.txt"
+    lastSyncedFile = dataDirectory / "last_synced.txt"
+
+    if (repositoryRegistry.notExists()) repositoryRegistry.writeText("")
+    if (lastSyncedFile.notExists()) lastSyncedFile.writeText("0")
+}
 
 fun main(args: Array<String>) {
-    val dataDirectory = Path(args[0])
-    repositoryRegistry = dataDirectory / "repos.txt"
+    initializeFiles(args[0])
 
     val exitCode = CommandLine(CloudfulCommand())
         .setExecutionExceptionHandler { e, _, _ ->
@@ -30,7 +35,7 @@ fun main(args: Array<String>) {
 class DisplayException(msg: String) : Exception(msg)
 
 @Command(name = "cloudful", subcommands = [
-    CommandLine.HelpCommand::class,
+    HelpCommand::class,
     SyncCommand::class,
     OpenCommand::class,
     InitCommand::class,
@@ -41,16 +46,20 @@ class CloudfulCommand
 @Command(name = "sync", description = ["Syncs repositories (by default, the current repository)."])
 class SyncCommand : Runnable {
     @Option(names = ["-a", "--all"], description = ["Sync all globally registered repositories."])
-    var all: Boolean = false
+    var all = false
+
+    @Option(names = ["-u", "--upload-only"], description = ["Only attempt sync when there are local changes (use only with --all)."])
+    var uploadOnly = false
 
     override fun run() {
+        if (uploadOnly && !all) println("Only use --upload-only in combination with --all!")
         if (!all) {
             val repository = readRepository() ?: throw DisplayException("No repository found!")
             println("Syncing repository ${repository.repositoryPath} ...\n")
             syncRepository(repository)
         } else {
-            println("Syncing all repositories...")
-            syncAllRepositories()
+            println("Syncing all repositories${if (uploadOnly) " (upload only)" else ""}...")
+            syncAllRepositories(uploadOnly)
         }
     }
 }
@@ -67,8 +76,8 @@ class OpenCommand : Runnable {
 
 @Command(name = "init", description = ["Initialize the current directory as a new repository."])
 class InitCommand : Runnable {
-    @Parameters(index = "0", paramLabel = "<repo path>")
-    lateinit var repositoryPath: String
+    @Parameters(paramLabel = "<repo path>", arity = "0..1")
+    var repositoryPath: String? = null
 
     override fun run() = createRepository(repositoryPath)
 }
