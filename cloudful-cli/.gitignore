@@ -42,3 +42,6 @@ bin/
 .DS_Store
 
 .idea
+
+dev_installation
+!dev_installation/cloudful.cmd

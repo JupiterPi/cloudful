@@ -3,7 +3,7 @@ package de.jupiterpi.cloudful.cli
 import java.nio.file.Path
 import kotlin.io.path.*
 
-fun sync(repository: Repository) {
+fun syncRepository(repository: Repository) {
     val excludePattern = repository.excludePaths
         .map { it.replace("\\", "\\\\").replace(".", "\\.").replace("*", ".*") }
         .joinToString(separator = "|") { "(^$it$)" }
@@ -16,14 +16,23 @@ fun sync(repository: Repository) {
     }
 }
 
+fun syncAllRepositories() {
+    repositoryRegistry.readLines().filter { it.isNotBlank() }.forEach { repositoryRoot ->
+        println()
+        val repository = readRepository(Path(repositoryRoot))!!
+        println("Syncing repository ${repository.repositoryPath} at ${repository.root} ...")
+        syncRepository(repository)
+    }
+}
+
 fun createRepository(repositoryPath: String) {
     if (readRepository() != null) throw DisplayException("There's already a repository here!")
     Path(".cloudful").createFile().writeText("> $repositoryPath\n\n# Exclude files here...")
 }
 
 @OptIn(ExperimentalPathApi::class)
-fun readRepository(): Repository? {
-    var repositoryRoot = Path("").absolute()
+fun readRepository(path: Path = Path("").absolute()): Repository? {
+    var repositoryRoot = path
     while (!(repositoryRoot / ".cloudful").exists()) {
         repositoryRoot = repositoryRoot.parent ?: return null
     }

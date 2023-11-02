@@ -26,3 +26,9 @@ kotlin {
 tasks.withType<Jar> {
     manifest.attributes["Main-Class"] = "de.jupiterpi.cloudful.cli.MainKt"
 }
+
+tasks.register<Copy>("installDev") {
+    dependsOn("shadowJar")
+    from(layout.buildDirectory.file("libs/cloudful-cli-1.0-SNAPSHOT-all.jar"))
+    into(layout.projectDirectory.dir("dev_installation"))
+}
