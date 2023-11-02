@@ -1,2 +1,2 @@
-# cloudful
-Personal repo-style GCP cloud storage with absolute control
+# Cloudful
+Personal repo-style GCP cloud storage with absolute control.
