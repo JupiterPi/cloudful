@@ -1,4 +1,4 @@
 package de.jupiterpi.cloudful.cli
 
 const val BUCKET = "cloudful-storage"
-const val REPOSITORIES_ROOT = "/r"
+const val REPOSITORIES_ROOT = "r/"

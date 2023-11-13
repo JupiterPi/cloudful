@@ -11,12 +11,9 @@ repositories {
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
     implementation("info.picocli:picocli:4.7.0")
-}
-
-tasks.test {
-    useJUnitPlatform()
+    implementation(platform("com.google.cloud:libraries-bom:26.26.0"))
+    implementation("com.google.cloud:google-cloud-storage")
 }
 
 kotlin {

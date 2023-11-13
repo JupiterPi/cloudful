@@ -1,5 +1,6 @@
 package de.jupiterpi.cloudful.cli
 
+import com.google.cloud.storage.StorageOptions
 import picocli.CommandLine
 import picocli.CommandLine.Command
 import picocli.CommandLine.HelpCommand
@@ -9,6 +10,8 @@ import kotlin.io.path.div
 import kotlin.io.path.notExists
 import kotlin.io.path.writeText
 import kotlin.system.exitProcess
+
+val storage = StorageOptions.getDefaultInstance().service!!
 
 lateinit var repositoryRegistry: Path
 lateinit var lastSyncedFile: Path

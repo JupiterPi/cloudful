@@ -9,12 +9,7 @@ fun syncRepository(repository: Repository) {
         .map { it.replace("\\", "\\\\").replace(".", "\\.").replace("*", ".*") }
         .joinToString(separator = "|") { "(^$it$)" }
     val excludeStr = if (excludePattern.isBlank()) "" else "-x \"$excludePattern\""
-    val cmd = "gsutil -m rsync -r -d $excludeStr ${repository.root} gs://$BUCKET$REPOSITORIES_ROOT/${repository.repositoryId}"
-    println("> $cmd")
-    Runtime.getRuntime().exec("cmd.exe /c $cmd").let {
-        it.inputStream.transferTo(System.out)
-        it.errorStream.transferTo(System.err)
-    }
+    executeCommand("gsutil -m rsync -r -d $excludeStr ${repository.root} gs://$BUCKET/$REPOSITORIES_ROOT${repository.repositoryId}")
 }
 
 @OptIn(ExperimentalPathApi::class)
@@ -73,7 +68,7 @@ fun readRepository(path: Path = Path("").absolute()): Repository? {
 
     val definition = configurationLines.first { it.startsWith(">") }.substring(1).trim().split(Regex(" +"))
     val repositoryId = definition[0]
-    val tags = definition[1].split(Regex(", *")) // unused
+    // val tags = definition[1].substring(1, definition[1].length-1).split(Regex(", *")) // unused
 
     val openPath = repositoryRoot.relativize(Path("").absolute()).toString().replace("\\", "/")
 
