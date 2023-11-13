@@ -10,6 +10,9 @@ class SyncCommand : Runnable {
     @Option(names = ["-a", "--all"], description = ["Sync all globally registered repositories."])
     var all = false
 
+    @Option(names = ["-d", "--force-delete"], description = ["Make sure to delete all ignored files from the cloud repository."])
+    var forceDelete = false
+
     @Option(names = ["-u", "--upload-only"], description = ["Only attempt sync when there are local changes (use only with --all)."])
     var uploadOnly = false
 
@@ -18,10 +21,10 @@ class SyncCommand : Runnable {
         if (!all) {
             val repository = readRepository() ?: throw DisplayException("No repository found!")
             println("Syncing repository ${repository.repositoryId} ...\n")
-            syncRepository(repository)
+            syncRepository(repository, forceDelete)
         } else {
             println("Syncing all repositories${if (uploadOnly) " (upload only)" else ""}...")
-            syncAllRepositories(uploadOnly)
+            syncAllRepositories(uploadOnly, forceDelete)
         }
     }
 }

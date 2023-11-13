@@ -8,7 +8,7 @@ import java.util.*
 import kotlin.io.path.*
 
 @OptIn(ExperimentalPathApi::class)
-fun syncAllRepositories(uploadOnly: Boolean) {
+fun syncAllRepositories(uploadOnly: Boolean, forceDelete: Boolean = false) {
     var repositories = repositoryRegistry.readLines().filter { it.isNotBlank() }.mapNotNull { readRepository(Path(it)) }
     repositoryRegistry.writeLines(repositories.map { it.root.toString() })
 
@@ -26,7 +26,7 @@ fun syncAllRepositories(uploadOnly: Boolean) {
     repositories.forEach { repository ->
         println("\nSyncing repository ${repository.repositoryId} at ${repository.root} ...")
 
-        try { syncRepository(repository) }
+        try { syncRepository(repository, forceDelete) }
         catch (e: Exception) { exceptionHandler(e) }
     }
 
