@@ -7,14 +7,6 @@ import java.nio.file.Path
 import java.util.*
 import kotlin.io.path.*
 
-fun syncRepository(repository: Repository) {
-    val excludePattern = repository.excludePaths
-        .map { it.replace("\\", "\\\\").replace(".", "\\.").replace("*", ".*") }
-        .joinToString(separator = "|") { "(^$it$)" }
-    val excludeStr = if (excludePattern.isBlank()) "" else "-x \"$excludePattern\""
-    executeCommand("gsutil -m rsync -r -d $excludeStr ${repository.root} gs://$BUCKET/$REPOSITORIES_ROOT${repository.repositoryId}")
-}
-
 @OptIn(ExperimentalPathApi::class)
 fun syncAllRepositories(uploadOnly: Boolean) {
     var repositories = repositoryRegistry.readLines().filter { it.isNotBlank() }.mapNotNull { readRepository(Path(it)) }
@@ -33,7 +25,9 @@ fun syncAllRepositories(uploadOnly: Boolean) {
 
     repositories.forEach { repository ->
         println("\nSyncing repository ${repository.repositoryId} at ${repository.root} ...")
-        syncRepository(repository)
+
+        try { syncRepository(repository) }
+        catch (e: Exception) { exceptionHandler(e) }
     }
 
     lastSyncedFile.writeText(Date().time.toString())

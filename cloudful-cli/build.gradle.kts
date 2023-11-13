@@ -14,6 +14,7 @@ dependencies {
     implementation("info.picocli:picocli:4.7.0")
     implementation(platform("com.google.cloud:libraries-bom:26.26.0"))
     implementation("com.google.cloud:google-cloud-storage")
+    implementation("commons-codec:commons-codec:1.15")
 }
 
 kotlin {

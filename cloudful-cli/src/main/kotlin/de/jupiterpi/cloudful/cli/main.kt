@@ -29,13 +29,12 @@ fun main(args: Array<String>) {
     initializeFiles(args[0])
 
     val exitCode = CommandLine(CloudfulCommand())
-        .setExecutionExceptionHandler { e, _, _ ->
-            if (e is DisplayException) println("Error: ${e.message}") else e.printStackTrace()
-            1
-        }
+        .setExecutionExceptionHandler { e, _, _ -> exceptionHandler(e); 1 }
         .execute(*(args.drop(1).toTypedArray()))
     exitProcess(exitCode)
 }
+
+fun exceptionHandler(e: Exception) = if (e is DisplayException) println("Error: ${e.message}") else e.printStackTrace()
 
 class DisplayException(msg: String) : Exception(msg)
 
