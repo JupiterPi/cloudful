@@ -48,6 +48,8 @@ fun initializeRepository(repositoryId: String, directory: Path) {
         BlobInfo.newBuilder(BlobId.of(BUCKET, "$REPOSITORIES_ROOT$repositoryId/.cloudful")).setContentType("text/plain").build(),
         configurationText.toByteArray()
     )
+
+    addToRegistry(directory)
 }
 
 fun cloneRepository(repositoryId: String, directory: Path) {
@@ -61,11 +63,14 @@ fun cloneRepository(repositoryId: String, directory: Path) {
     directory.createDirectory()
     executeCommand("gsutil -m cp -r gs://$BUCKET/$REPOSITORIES_ROOT$repositoryId/* $directory")
 
+    addToRegistry(directory)
+}
+
+private fun addToRegistry(root: Path) {
+    val root = root.absolute().toString()
     val repositories = repositoryRegistry.readLines().filter { it.isNotBlank() }
-    val root = Path("").absolute().toString()
     if (!repositories.contains(root)) {
         repositoryRegistry.writeLines(repositories + root)
-        println("Added it to the global registry.")
     }
 }
 
