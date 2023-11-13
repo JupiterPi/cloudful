@@ -32,7 +32,7 @@ fun syncRepository(repository: Repository) {
     }
     if (!upload && !download) {
         println("There's a sync conflict!")
-        println("Resolve it or try `cloudful force-upload` or `cloudful force-download`")
+        println("Resolve it or try `cloudful force upload` or `cloudful force download`")
         return
     }
 
@@ -47,11 +47,15 @@ fun syncRepository(repository: Repository) {
         )
     }
 
+    syncOperation(repository, upload)
+}
+
+fun syncOperation(repository: Repository, upload: Boolean) {
     val excludeStr = repository.excludePaths
         .map { it.replace("\\", "\\\\").replace(".", "\\.").replace("*", ".*") }
         .joinToString(separator = "|") { "(^$it$)" }
         .let { if (it.isBlank()) "" else "-x \"$it\"" }
 
     if (upload) executeCommand("gsutil -m rsync -r -d $excludeStr ${repository.root} gs://$BUCKET/$REPOSITORIES_ROOT${repository.repositoryId}")
-    if (download) executeCommand("gsutil -m rsync -r -d $excludeStr gs://$BUCKET/$REPOSITORIES_ROOT${repository.repositoryId} ${repository.root}")
+    else executeCommand("gsutil -m rsync -r -d $excludeStr gs://$BUCKET/$REPOSITORIES_ROOT${repository.repositoryId} ${repository.root}")
 }

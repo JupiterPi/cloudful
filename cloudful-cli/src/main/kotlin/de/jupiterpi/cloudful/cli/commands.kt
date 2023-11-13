@@ -58,6 +58,19 @@ class CloneCommand : Runnable {
     override fun run() = cloneRepository(repositoryId, Path(directoryName))
 }
 
+@Command(name = "force", description = ["Force download or upload."])
+class ForceCommand : Runnable {
+    @Parameters(index = "0", paramLabel = "<download|upload>")
+    lateinit var mode: String
+
+    override fun run() {
+        val repository = readRepository() ?: throw DisplayException("No repository found!")
+        if (mode != "download" && mode != "upload") throw DisplayException("Invalid mode: $mode")
+        println("Forcing $mode of repository ${repository.repositoryId}...")
+        syncOperation(repository, mode == "upload")
+    }
+}
+
 @Command(name = "registry", description = ["Opens the global repository registry."])
 class RegistryCommand : Runnable {
     override fun run() {
