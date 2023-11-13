@@ -16,7 +16,7 @@ class SyncCommand : Runnable {
         if (uploadOnly && !all) println("Only use --upload-only in combination with --all!")
         if (!all) {
             val repository = readRepository() ?: throw DisplayException("No repository found!")
-            println("Syncing repository ${repository.repositoryPath} ...\n")
+            println("Syncing repository ${repository.repositoryId} ...\n")
             syncRepository(repository)
         } else {
             println("Syncing all repositories${if (uploadOnly) " (upload only)" else ""}...")
@@ -29,7 +29,7 @@ class SyncCommand : Runnable {
 class OpenCommand : Runnable {
     override fun run() {
         val repository = readRepository() ?: throw DisplayException("No repository found!")
-        val url = "https://console.cloud.google.com/storage/browser/$BUCKET$REPOSITORIES_ROOT/${repository.repositoryPath}/${repository.openPath}"
+        val url = "https://console.cloud.google.com/storage/browser/$BUCKET$REPOSITORIES_ROOT/${repository.repositoryId}/${repository.openPath}"
 
         Desktop.getDesktop().browse(URI(url))
     }

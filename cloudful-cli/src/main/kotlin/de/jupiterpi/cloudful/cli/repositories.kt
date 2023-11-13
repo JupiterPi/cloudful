@@ -9,7 +9,7 @@ fun syncRepository(repository: Repository) {
         .map { it.replace("\\", "\\\\").replace(".", "\\.").replace("*", ".*") }
         .joinToString(separator = "|") { "(^$it$)" }
     val excludeStr = if (excludePattern.isBlank()) "" else "-x \"$excludePattern\""
-    val cmd = "gsutil -m rsync -r -d $excludeStr ${repository.root} gs://$BUCKET$REPOSITORIES_ROOT/${repository.repositoryPath}"
+    val cmd = "gsutil -m rsync -r -d $excludeStr ${repository.root} gs://$BUCKET$REPOSITORIES_ROOT/${repository.repositoryId}"
     println("> $cmd")
     Runtime.getRuntime().exec("cmd.exe /c $cmd").let {
         it.inputStream.transferTo(System.out)
@@ -34,7 +34,7 @@ fun syncAllRepositories(uploadOnly: Boolean) {
     }
 
     repositories.forEach { repository ->
-        println("\nSyncing repository ${repository.repositoryPath} at ${repository.root} ...")
+        println("\nSyncing repository ${repository.repositoryId} at ${repository.root} ...")
         syncRepository(repository)
     }
 
@@ -67,7 +67,14 @@ fun readRepository(path: Path = Path("").absolute()): Repository? {
 
     val configurationLines = (repositoryRoot / ".cloudful").readLines()
 
-    val repositoryPath = configurationLines.first { it.startsWith(">") }.substring(1).trim()
+    val versionDefinition = configurationLines[0].substring(1).split("_")
+    val numericVersion = versionDefinition[0].toInt()
+    val checksum = versionDefinition[1]
+
+    val definition = configurationLines.first { it.startsWith(">") }.substring(1).trim().split(Regex(" +"))
+    val repositoryId = definition[0]
+    val tags = definition[1].split(Regex(", *")) // unused
+
     val openPath = repositoryRoot.relativize(Path("").absolute()).toString().replace("\\", "/")
 
     val excludePaths = configurationLines
@@ -79,12 +86,16 @@ fun readRepository(path: Path = Path("").absolute()): Repository? {
     repositoryRoot.walk().filter { it.fileName.toString() == ".cloudignore" }
         .forEach { file -> excludePaths += file.readLines().filter { !it.startsWith("#") }.map { "${repositoryRoot.relativize(file.parent)}\\${it.trim()}" } }
 
-    return Repository(repositoryRoot, repositoryPath, excludePaths, openPath)
+    return Repository(repositoryRoot, repositoryId, numericVersion, checksum, excludePaths, openPath)
 }
 
 data class Repository(
     val root: Path,
-    val repositoryPath: String,
+    val repositoryId: String,
+    val numericVersion: Int,
+    val checksum: String,
     val excludePaths: List<String>,
     val openPath: String,
-)
+) {
+    val versionDefinition get() = "${numericVersion}_$checksum"
+}
