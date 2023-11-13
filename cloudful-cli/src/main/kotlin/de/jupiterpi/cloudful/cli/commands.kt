@@ -54,6 +54,8 @@ class InitCommand : Runnable {
         val exists = storage.list(BUCKET, Storage.BlobListOption.prefix("$REPOSITORIES_ROOT$repositoryId"), Storage.BlobListOption.pageSize(1)).values.iterator().hasNext()
         if (exists) throw DisplayException("Repository already exists in cloud!")
 
+        println("Initializing new repository $repositoryId in $directoryName...")
+
         directory.createDirectory()
         val configurationText = "#0_00\n> $repositoryId\n\n# Exclude files here..."
         (directory / ".cloudful").createFile().writeText(configurationText)
@@ -61,6 +63,28 @@ class InitCommand : Runnable {
             BlobInfo.newBuilder(BlobId.of(BUCKET, "$REPOSITORIES_ROOT$repositoryId/.cloudful")).setContentType("text/plain").build(),
             configurationText.toByteArray()
         )
+    }
+}
+
+@Command(name = "clone", description = ["Creates a local copy of a repository in cloud."])
+class CloneCommand : Runnable {
+    @Parameters(index = "0", paramLabel = "<repo id>")
+    lateinit var repositoryId: String
+
+    @Parameters(index = "1", paramLabel = "<directory>")
+    lateinit var directoryName: String
+
+    override fun run() {
+        val directory = Path(directoryName)
+        if (directory.exists()) throw DisplayException("That directory already exists!")
+
+        val exists = storage.list(BUCKET, Storage.BlobListOption.prefix("$REPOSITORIES_ROOT$repositoryId"), Storage.BlobListOption.pageSize(1)).values.iterator().hasNext()
+        if (!exists) throw DisplayException("Repository doesn't exists in cloud!")
+
+        println("Cloning $repositoryId into $directoryName...")
+
+        directory.createDirectory()
+        executeCommand("gsutil -m cp -r gs://$BUCKET/$REPOSITORIES_ROOT$repositoryId/* $directoryName")
     }
 }
 

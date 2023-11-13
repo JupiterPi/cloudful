@@ -44,6 +44,7 @@ class DisplayException(msg: String) : Exception(msg)
     SyncCommand::class,
     OpenCommand::class,
     InitCommand::class,
+    CloneCommand::class,
     RegistryCommand::class,
 ])
 class CloudfulCommand
