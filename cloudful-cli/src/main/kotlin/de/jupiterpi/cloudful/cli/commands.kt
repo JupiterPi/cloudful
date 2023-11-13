@@ -1,12 +1,9 @@
 package de.jupiterpi.cloudful.cli
 
-import com.google.cloud.storage.BlobId
-import com.google.cloud.storage.BlobInfo
-import com.google.cloud.storage.Storage
 import picocli.CommandLine.*
 import java.awt.Desktop
 import java.net.URI
-import kotlin.io.path.*
+import kotlin.io.path.Path
 
 @Command(name = "sync", description = ["Syncs repositories (by default, the current repository)."])
 class SyncCommand : Runnable {
@@ -47,23 +44,7 @@ class InitCommand : Runnable {
     @Parameters(index = "1", paramLabel = "<directory>")
     lateinit var directoryName: String
 
-    override fun run() {
-        val directory = Path(directoryName)
-        if (directory.exists()) throw DisplayException("That directory already exists!")
-
-        val exists = storage.list(BUCKET, Storage.BlobListOption.prefix("$REPOSITORIES_ROOT$repositoryId"), Storage.BlobListOption.pageSize(1)).values.iterator().hasNext()
-        if (exists) throw DisplayException("Repository already exists in cloud!")
-
-        println("Initializing new repository $repositoryId in $directoryName...")
-
-        directory.createDirectory()
-        val configurationText = "#0_00\n> $repositoryId\n\n# Exclude files here..."
-        (directory / ".cloudful").createFile().writeText(configurationText)
-        storage.create(
-            BlobInfo.newBuilder(BlobId.of(BUCKET, "$REPOSITORIES_ROOT$repositoryId/.cloudful")).setContentType("text/plain").build(),
-            configurationText.toByteArray()
-        )
-    }
+    override fun run() = initializeRepository(repositoryId, Path(directoryName))
 }
 
 @Command(name = "clone", description = ["Creates a local copy of a repository in cloud."])
@@ -74,18 +55,7 @@ class CloneCommand : Runnable {
     @Parameters(index = "1", paramLabel = "<directory>")
     lateinit var directoryName: String
 
-    override fun run() {
-        val directory = Path(directoryName)
-        if (directory.exists()) throw DisplayException("That directory already exists!")
-
-        val exists = storage.list(BUCKET, Storage.BlobListOption.prefix("$REPOSITORIES_ROOT$repositoryId"), Storage.BlobListOption.pageSize(1)).values.iterator().hasNext()
-        if (!exists) throw DisplayException("Repository doesn't exists in cloud!")
-
-        println("Cloning $repositoryId into $directoryName...")
-
-        directory.createDirectory()
-        executeCommand("gsutil -m cp -r gs://$BUCKET/$REPOSITORIES_ROOT$repositoryId/* $directoryName")
-    }
+    override fun run() = cloneRepository(repositoryId, Path(directoryName))
 }
 
 @Command(name = "registry", description = ["Opens the global repository registry."])

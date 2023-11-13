@@ -1,5 +1,8 @@
 package de.jupiterpi.cloudful.cli
 
+import com.google.cloud.storage.BlobId
+import com.google.cloud.storage.BlobInfo
+import com.google.cloud.storage.Storage
 import java.nio.file.Path
 import java.util.*
 import kotlin.io.path.*
@@ -36,14 +39,33 @@ fun syncAllRepositories(uploadOnly: Boolean) {
     lastSyncedFile.writeText(Date().time.toString())
 }
 
-fun createRepository(repositoryPath: String?) {
-    if (readRepository() != null) {
-        println("There's already a repository here!")
-    } else {
-        if (repositoryPath.isNullOrBlank()) throw Exception("Need to provide a repository path!")
-        Path(".cloudful").createFile().writeText("> $repositoryPath\n\n# Exclude files here...")
-        println("Created new repository. See .cloudful")
-    }
+fun initializeRepository(repositoryId: String, directory: Path) {
+    if (directory.exists()) throw DisplayException("That directory already exists!")
+
+    val exists = storage.list(BUCKET, Storage.BlobListOption.prefix("$REPOSITORIES_ROOT$repositoryId"), Storage.BlobListOption.pageSize(1)).values.iterator().hasNext()
+    if (exists) throw DisplayException("Repository already exists in cloud!")
+
+    println("Initializing new repository $repositoryId in $directory...")
+
+    directory.createDirectory()
+    val configurationText = "#0_00\n> $repositoryId\n\n# Exclude files here..."
+    (directory / ".cloudful").createFile().writeText(configurationText)
+    storage.create(
+        BlobInfo.newBuilder(BlobId.of(BUCKET, "$REPOSITORIES_ROOT$repositoryId/.cloudful")).setContentType("text/plain").build(),
+        configurationText.toByteArray()
+    )
+}
+
+fun cloneRepository(repositoryId: String, directory: Path) {
+    if (directory.exists()) throw DisplayException("That directory already exists!")
+
+    val exists = storage.list(BUCKET, Storage.BlobListOption.prefix("$REPOSITORIES_ROOT$repositoryId"), Storage.BlobListOption.pageSize(1)).values.iterator().hasNext()
+    if (!exists) throw DisplayException("Repository doesn't exists in cloud!")
+
+    println("Cloning $repositoryId into $directory...")
+
+    directory.createDirectory()
+    executeCommand("gsutil -m cp -r gs://$BUCKET/$REPOSITORIES_ROOT$repositoryId/* $directory")
 
     val repositories = repositoryRegistry.readLines().filter { it.isNotBlank() }
     val root = Path("").absolute().toString()
