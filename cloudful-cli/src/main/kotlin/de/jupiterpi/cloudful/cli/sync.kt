@@ -14,7 +14,7 @@ fun syncRepository(repository: Repository) {
 
     // calculate checksum of local changes
     val checksumInputStreams = repository.root.walk()
-        .filterNot { path -> repository.excludePaths.any { path.startsWith(it) } }
+        .filterNot { path -> repository.excludePaths.any { path.startsWith((repository.root / it)) } }
         .filterNot { it == (repository.root / ".cloudful") }
         .map { it.inputStream() }
         .toMutableList()
